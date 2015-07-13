@@ -26,11 +26,9 @@ typedef struct _NODE
 
 typedef struct _RENTAL
 {
-	void * pData;
-	struct _MEMBER* pRentalMember;
-	struct _VIDEO* pRentalVideo;
-	struct _RENTAL * pNext;
-	struct _RENTAL * pPre;
+	char * pRMemberName;
+	char * pRVideoName;
+	int iRVideoNum;
 }RENTAL;
 typedef void(*ADDNODE)(struct _LINKEDLIST * pLinkedList, void * pData);
 typedef void(*LINKNODE)(struct _LINKEDLIST * pLinkedList, void * pData, NODE * pSearch);
@@ -84,7 +82,6 @@ void LinkNode(LINKEDLIST * pLinkedList, void * pData, NODE * pSearch)
 		pSearch->pPre = pNode;
 	}
 }
-
 void AddTop(LINKEDLIST * pLinkedList, void * pData)
 {
 	LinkNode(pLinkedList, pData, pLinkedList->pTop);
@@ -93,7 +90,6 @@ void AddBottom(LINKEDLIST * pLinkedList, void * pData)
 {
 	LinkNode(pLinkedList, pData, NULL);
 }
-
 bool DeleteAt(LINKEDLIST * pLinkedList, NODE * pSearch)
 {
 	if (pSearch == NULL )
@@ -135,7 +131,6 @@ bool DeleteAll(LINKEDLIST * pLinkedList)
 	while (DeleteTop(pLinkedList));
 	return NULL;
 }
-
 void InitLinkedList(LINKEDLIST * pLinkedList, ADDNODE AddTop, ADDNODE AddBottom, DELETEAT DeleteAt, DELETENODE DeleteTop, DELETENODE DeleteBottom, DELETENODE DeleteAll)
 {
 	pLinkedList->pBottom = NULL;
@@ -147,7 +142,6 @@ void InitLinkedList(LINKEDLIST * pLinkedList, ADDNODE AddTop, ADDNODE AddBottom,
 	pLinkedList->DeleteBottom = DeleteBottom;
 	pLinkedList->DeleteAll = DeleteAll;
 }
-
 NODE * FindFlag(LINKEDLIST* list, int iInputdata){
 	NODE * pStart = list->pTop;
 	while (pStart)
@@ -160,22 +154,19 @@ NODE * FindFlag(LINKEDLIST* list, int iInputdata){
 	}
 	return NULL;
 }
-
 void InsertChar(const char * pTitle,char ** MemberData){
 	char temp[1024] = {' '};
-	printf("%s : ", pTitle);
+	printf("%s", pTitle);
 	gets_s(temp,sizeof(temp));
 	fflush(stdin);
 	*MemberData = (char *)malloc(strlen(temp) + 1);
 	strcpy_s(*MemberData, strlen(temp) + 1, temp);
 }
-
 void InsertInt(const char * pTitle,int * MemberData){
 	printf("%s", pTitle);
 	scanf_s("%d", MemberData);
 	fflush(stdin);
 }
-
 void InputMemberData(NODE** pNode){
 	MEMBER * Member = (MEMBER *)malloc(sizeof(MEMBER));
 	(*pNode)->pData = Member;
@@ -183,7 +174,6 @@ void InputMemberData(NODE** pNode){
 	InsertInt("회원 나이 : ",&((MEMBER*)((*pNode)->pData))->pAge);
 	InsertChar("회원 전화번호 : ", &((MEMBER*)((*pNode)->pData))->pPhone);
 }
-
 void InputVideoData(NODE** pNode){
 	int switch_on = 0;
 	VIDEO* Video = (VIDEO*)malloc(sizeof(VIDEO));
@@ -206,19 +196,16 @@ void InputVideoData(NODE** pNode){
 		break;
 	}
 }
-
 void InputMember(LINKEDLIST* list){
 	NODE * pNode = (NODE *)malloc(sizeof(NODE));
 	InputMemberData(&pNode);
 	list->AddBottom(list, (void *)pNode->pData);
 }
-
 void InputVideo(LINKEDLIST* list){
 	NODE * pNode = (NODE *)malloc(sizeof(NODE));
 	InputVideoData(&pNode);
 	list->AddBottom(list, (void *)pNode->pData);
 }
-
 void PrintMember(NODE * pStart){
 		printf("MemberName : %s\n", ((MEMBER*)(pStart->pData))->pName);
 		printf("MemberAge : %d\n", ((MEMBER*)(pStart->pData))->pAge);
@@ -299,7 +286,6 @@ void SearchVideo(LINKEDLIST* list){
 	}
 	PrintVideo(pFindFlag);
 }
-
 void ModifyMember(LINKEDLIST* list){
 	char temp[1024] = { ' ' };
 	printf("찾을 값 : ");
@@ -354,7 +340,6 @@ void DeleteVideo(LINKEDLIST* list){
 		printf("그런거 없다.");
 	}
 }
-
 void InputRentalData(LINKEDLIST* Memberlist, LINKEDLIST* Videolist, NODE** Rebtallist){
 	RENTAL* pRental = (RENTAL*)malloc(sizeof(RENTAL));
 	(*Rebtallist)->pData = pRental;
@@ -368,18 +353,29 @@ void InputRentalData(LINKEDLIST* Memberlist, LINKEDLIST* Videolist, NODE** Rebta
 		printf("그런고객 없다.");
 		return;
 	}
-	((RENTAL*)((*Rebtallist)->pData))->pRentalMember = (MEMBER*)pFindMember->pData;
+	((RENTAL*)((*Rebtallist)->pData))->pRMemberName = ((MEMBER*)pFindMember->pData)->pName;
 
 	printf("비디오 번호 : ");
 	scanf_s("%d", &Number);
 	fflush(stdin);
 	NODE * pFindVideo = SSearchNumber(Videolist, Number);
 	if (pFindVideo == NULL){
-		printf("그런비디오 없다.");
+		printf("그런비디오 없다.\n");
+		return;
+	}
+	if (((VIDEO*)(pFindVideo->pData))->bRent == false)
+	{
+		printf("이미 대여중.\n");
+		return;
+	}
+	if (((VIDEO*)(pFindVideo->pData))->iGrade > ((MEMBER*)pFindMember->pData)->pAge)
+	{
+		printf("넌 못봐\n");
 		return;
 	}
 	((VIDEO*)(pFindVideo->pData))->bRent = false;
-	((RENTAL*)((*Rebtallist)->pData))->pRentalVideo = (VIDEO*)pFindVideo->pData;
+	((RENTAL*)((*Rebtallist)->pData))->iRVideoNum = ((VIDEO*)pFindVideo->pData)->iVNumber;
+	((RENTAL*)((*Rebtallist)->pData))->pRVideoName = ((VIDEO*)pFindVideo->pData)->pVName;
 
 }
 void InputRental(LINKEDLIST* Memberlist, LINKEDLIST* Videolist, LINKEDLIST* Rentallist){
@@ -404,7 +400,15 @@ void PrintRentallist(LINKEDLIST* Rentallist){
 	NODE * pStart = Rentallist->pTop;
 	while (pStart)
 	{
-		PrintMember(pStart);
+		printf("MemberName : %s\n", ((RENTAL*)(pStart->pData))->pRMemberName);
+		printf("VideoNumber : %d\n", (((RENTAL*)(pStart)->pData))->iRVideoNum);
+		printf("VideoName : %s\n", ((RENTAL*)(pStart->pData))->pRVideoName);
+		if (((VIDEO*)(pStart->pData))->bRent == true){
+			printf("대여 가능\n");
+		}
+		else{
+			printf("대여중 대여불가능\n");
+		}
 		pStart = pStart->pNext;
 	}
 }
@@ -424,7 +428,7 @@ void main()
 
 	LINKEDLIST Rentallist;
 	Rentallist.InitList = InitLinkedList;
-	Rentallist.InitList(&Videolist, AddTop, AddBottom, DeleteAt, DeleteTop, DeleteBottom, DeleteAll);
+	Rentallist.InitList(&Rentallist, AddTop, AddBottom, DeleteAt, DeleteTop, DeleteBottom, DeleteAll);
 
 	while (mode != '0'){
 		printf("\nmode 선택 ( 1 = 사용자 관리 , 2 = 비디오 관리 , 3 = 대여 관리, 0 = 종료) \n");
@@ -484,8 +488,8 @@ void main()
 			}
 			break;
 		case '3':
-			printf("\nmode 선택 ( 1 = 비디오 대여 , 2 = 비디오 반납 ,0 = 돌아가기) \n");
-			cManageMember = getchar();
+			printf("\nmode 선택 ( 1 = 비디오 대여 , 2 = 비디오 반납 , 3 = 비디오 대여목록 ,0 = 돌아가기) \n");
+			cManageRental = getchar();
 			fflush(stdin);
 			switch (cManageRental){
 			case '1':
